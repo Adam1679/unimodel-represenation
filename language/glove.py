@@ -2,7 +2,7 @@
 """
 Created on Tue Oct  6 15:57:57 2020
 
-@author: l
+@author: Anxiang Zhang
 """
 import numpy as np
 import json
@@ -24,6 +24,7 @@ class Glove():
             if self.dim is None:
                 self.dim = len(wordEmbedding)
             gloveModel[word] = wordEmbedding
+        print ("Loading Glove Model [finished]")
         return gloveModel
 
 @dataclass
@@ -97,7 +98,7 @@ class QuestionAnswerPair(object):
         self.question_type = self.answer_meta['question_types']
         for part in self.answer_meta['annotations']:
             meta_obj = MetaAnnotation(**part)
-            self.questionid2type[meta_obj.question_id] = meta_obj.question_type
+            self.questionid2type[meta_obj.question_id] = self.question_type[meta_obj.question_type]
             for answer in meta_obj.answers:
                 obj = MetaAnswer(**answer)
                 
@@ -108,9 +109,9 @@ class QuestionAnswerPair(object):
                     self.id2answer[tmp] = answer['answer']
                     self.id2answermeta[tmp] = obj
                 
-    def iter_question_answer_pairs(self):
+    def iter_question_answer_type_triplets(self):
         for question_id, answers in self.questionid2answers.items():
-            yield self.id2question[question_id], answers
+            yield self.id2question[question_id], answers, self.questionid2type[question_id]
             
     def iter_question_type_pairs(self):
         for question, question_id in self.question2id.items():
