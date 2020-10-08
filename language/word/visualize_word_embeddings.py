@@ -10,10 +10,13 @@ import numpy as np
 import nltk
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 from string import punctuation
 hit = 0
 miss = 0
 color_map = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+cmap = plt.cm.viridis
+# cmap = plt.rcParams['image.cmap']
 glove_path = "./glove.6B.50d.txt"
 answer_path = "./data/mscoco_train2014_annotations.json"
 question_path = "./data/OpenEnded_mscoco_train2014_questions.json"
@@ -25,14 +28,12 @@ def __process_sent(sent):
     return sent.lower().translate(translate_table)
 
 
-def get_sent_embedding(sentence, glove, filter_pos=None):
+def get_sent_embedding(sentence, glove, keep_pos=None):
     global hit, miss
-    if filter_pos is None:
-        filter_pos = []
     sentence = __process_sent(sentence)
     word_tokens = nltk.word_tokenize (sentence)
     tokens = nltk.pos_tag(word_tokens)
-    tokens = [item[0] for item in tokens if item[1] not in filter_pos]
+    tokens = [item[0] for item in tokens if keep_pos is None or item[1] in keep_pos]
     dim = glove.dim
     sent_emb = np.zeros(dim)
     cnt = 0
@@ -44,13 +45,15 @@ def get_sent_embedding(sentence, glove, filter_pos=None):
             cnt += 1
         else:
             miss += 1
+    if cnt == 0:
+        print('EMPTY')
     return sent_emb / cnt if cnt > 0 else sent_emb
 
 
-def all_embeddings(sentences, glove, filter_pos=None):
+def all_embeddings(sentences, glove, keep_pos=None):
     x = np.zeros((len(sentences), glove.dim))
     for i, sent in enumerate(sentences):
-        x[i, :] = get_sent_embedding(sent, glove, filter_pos)
+        x[i, :] = get_sent_embedding(sent, glove, keep_pos)
     return x
 
 
@@ -64,17 +67,29 @@ def tsne_visualize(X, types, type2name, name):
     # types = np.array(types)
     X_embedded = TSNE (n_components=2).fit_transform (X)
     f, axes = plt.subplots(1,1,figsize=(10, 10))
+    types = np.array(types)
+
     def plot(ax, data, **kwargs):
         return ax.scatter(data[:, 0], data[:, 1], **kwargs)
 
-    color = [color_map[i] for i in types]
-    plot(axes, X_embedded, c=color, marker='^', label=type2name[t])
-
-    axes.legend(title_fontsize='small', loc='upper left')
+    color = [cmap(color_map[i]) for i in types]
+    plot(axes, X_embedded, c=color, marker='^')
+    type_ids = np.unique (types)
+    legends = []
+    for type_id in type_ids :
+        type_name = type2name[type_id]
+        line = Line2D ([0], [0], marker='^',
+                       color='w',
+                       label=type_name,
+                       markerfacecolor=cmap(color_map[type_id]),
+                       markersize=10)
+        legends.append(line)
+    axes.legend(handles=legends, title_fontsize='small', loc='upper left')
     axes.set_title(f'T-SNE viualization of {name}')
     f.savefig(f"./language.plot.sentence.{name}.png", dpi=180)
 
 def main():
+    global miss, hit
     question_types = [] # integer
     questions = []
     anwser_types = []
@@ -85,18 +100,25 @@ def main():
         if type not in type2id:
             t = len(type2id)
             type2id[type] = t
-            type2id[t] = type
+            id2type[t] = type
 
         question_types.append (type2id[type])
+        questions.append(question)
         answers = set(answers)  # duplicate answers
         for answer in answers:
             all_answers.append(answer)
             anwser_types.append(type2id[type])
 
     tsne_visualize(all_embeddings(questions, glove_obj), question_types, id2type, "Questions")
+    print (f"Glove hit/miss in questions: {hit}/{miss}")
+    hit = 0
+    miss = 0
     tsne_visualize(all_embeddings(all_answers, glove_obj), anwser_types, id2type, "Answers")
+    print (f"Glove hit/miss in answers: {hit}/{miss}")
 
 def main_with_name_entity_filter():
+    keep_pos = ['NNS', 'NN', 'NNP', 'NNPS', "JJ", 'JJR', 'PRP', 'PRP$', 'RB', 'RBR', 'RBS', 'RP', 'SYM', 'VB', 'VBD',
+                'VBG', 'VBN', 'VBP', 'VBZ']
     question_types = [] # integer
     questions = []
     anwser_types = []
@@ -107,16 +129,16 @@ def main_with_name_entity_filter():
         if type not in type2id:
             t = len(type2id)
             type2id[type] = t
-            type2id[t] = type
+            id2type[t] = type
 
         question_types.append (type2id[type])
+        questions.append(question)
         answers = set(answers)  # duplicate answers
         for answer in answers:
             all_answers.append(answer)
             anwser_types.append(type2id[type])
 
-    tsne_visualize(all_embeddings(questions, glove_obj), question_types, id2type, "Questions.filter")
-    tsne_visualize(all_embeddings(all_answers, glove_obj), anwser_types, id2type, "Answers.filter")
+    tsne_visualize(all_embeddings(questions, glove_obj, keep_pos), question_types, id2type, "Questions.filter")
 
 if __name__ == "__main__":
     main()

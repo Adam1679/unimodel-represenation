@@ -118,13 +118,17 @@ class QuestionAnswerPair(object):
             yield question, self.questionid2type[question_id]
             
 if __name__ == "__main__":
+    """ Summarize the Data Set """
     question_path = "D:/OpenEnded_mscoco_train2014_questions.json/OpenEnded_mscoco_train2014_questions.json"
     answer_path = "D:/mscoco_train2014_annotations.json/mscoco_train2014_annotations.json"
     obj = QuestionAnswerPair(question_path, answer_path)
+    all_questions = set()
     for question, type_name in obj.iter_question_type_pairs():
         print(f"{question}: {type_name}")
-    # print(obj.answer2id)
-    # print(f"In total, there are {len(obj.answer2id)} kinds of answers")
+        all_questions.add(question)
+    # Glove hit/miss in questions: 73192/150
+    # Glove hit/miss in answers: 35234/1021
+    print(f"#question in train/all-set {len(all_questions)}/14055\n #unique question: 12591 \n #unique_words: 7178")
             
             
         
