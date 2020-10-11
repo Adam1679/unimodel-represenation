@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Oct  6 15:57:57 2020
+@author: Xuandi Fu
+"""
+
 from pytorch_transformers import BertModel, AutoTokenizer
 import torch.nn as nn
 import torch
@@ -32,6 +38,16 @@ def fit(input, tsne):
     tsne.fit(input)
     return tsne
 
+def cosine_similarity(x_vec, y_vev):
+    """
+    :param x_vec: (dim)
+    :param y_vev: (n, dim)
+    :return:
+    """
+    y_norm = np.linalg.norm(y_vev, ord=2, axis=1, keepdims=True)
+    x_norm = np.linalg.norm(x_vec, ord=2, axis=0, keepdims=True)
+    return (y_vev @ x_vec[:, np.newaxis]) / ((y_norm * x_norm) + 1e-12)
+
 def plot(tsne_results, type_names):
     df_subset = pd.DataFrame(tsne_results)
 
@@ -53,27 +69,40 @@ def plot(tsne_results, type_names):
     plt.savefig('subset_plot_10000_each.png')
     return
 
+def get_bert(questions, bert):
+    x = np.zeros((len(questions), 768))
+    for i, sent in enumerate(questions):
+        if len(sent) == 0:
+            x[i, :] = np.zeros((1, 768))
+            continue
+        ques_emb = bert.forward(sent)
+        ques_emb = ques_emb.detach().numpy()
+        x[i, :] = ques_emb
+    return x
+
 if __name__ == "__main__":
-    question_path = "OpenEnded_mscoco_train2014_questions.json"
-    answer_path = "mscoco_train2014_annotations.json"
+    question_path = "../data/OpenEnded_mscoco_train2014_questions.json"
+    answer_path = "../data/mscoco_train2014_annotations.json"
     obj = QuestionAnswerPair(question_path, answer_path)
     bert = Bert()
     tsne = TSNE(n_components=2)
 
-    embeddings = []
+    ques_embs = []
+    ans_embs = []
     type_names = []
     embeddingeachs = []
     results = []
 
-    for question, type_name in obj.iter_question_type_pairs():
+    for question, answers in obj.iter_question_answer_pairs():
         #print(f"{question}: {type_name}")
 
-        embedding = bert.forward(question)
-        embeddings.append(embedding.detach().numpy())
-        type_names.append(type_name)
+        ques_emb = bert.forward(question)
+        ques_embs.append(ques_emb.detach().numpy())
+        for answer in answers:
+            ans_emb = bert.forward(answer)
+            ans_embs.append(ans_emb.detach().numpy())
 
-
-    subset = np.concatenate(embeddings, axis=0)
+    subset = np.concatenate(ques_embs, axis=0)
     result = transform(subset, tsne)
     # results = np.concatenate(results, axis=0)
     # results.dump('bert.dat')
