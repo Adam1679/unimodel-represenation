@@ -33,5 +33,7 @@ class ResNet101(backbone.base.Base):
                 parameter.requires_grad = False
 
         features = nn.Sequential(*features)
+        
+        #print(features)
 
         return features, hidden, num_features_out, num_hidden_out

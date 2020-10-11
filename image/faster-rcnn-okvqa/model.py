@@ -24,6 +24,7 @@ class Model(nn.Module):
         super().__init__()
 
         self.features, hidden, num_features_out, num_hidden_out = backbone.features()
+        
         self._bn_modules = nn.ModuleList([it for it in self.features.modules() if isinstance(it, nn.BatchNorm2d)] +
                                          [it for it in hidden.modules() if isinstance(it, nn.BatchNorm2d)])
 
@@ -45,10 +46,20 @@ class Model(nn.Module):
             bn_module.eval()
 
         features = self.features(image_batch)
+        
+        
+        
+        #print(features.shape) #(1, 1024, 50, 67)
 
         batch_size, _, image_height, image_width = image_batch.shape
         _, _, features_height, features_width = features.shape
-
+        
+        
+        #This is for embeddings generation
+       
+        embeddings = features.mean(dim=1).reshape(features.shape[0], -1)
+        #print(embeddings.shape)
+        
         anchor_bboxes = self.rpn.generate_anchors(image_width, image_height, num_x_anchors=features_width, num_y_anchors=features_height).to(features).repeat(batch_size, 1, 1)
 
         if self.training:
@@ -61,7 +72,7 @@ class Model(nn.Module):
             proposal_bboxes = self.rpn.generate_proposals(anchor_bboxes, anchor_objectnesses, anchor_transformers, image_width, image_height)
             proposal_classes, proposal_transformers = self.detection.forward(features, proposal_bboxes)
             detection_bboxes, detection_classes, detection_probs, detection_batch_indices = self.detection.generate_detections(proposal_bboxes, proposal_classes, proposal_transformers, image_width, image_height)
-            return detection_bboxes, detection_classes, detection_probs, detection_batch_indices
+            return detection_bboxes, detection_classes, detection_probs, detection_batch_indices, embeddings
 
     def save(self, path_to_checkpoints_dir: str, step: int, optimizer: Optimizer, scheduler: _LRScheduler) -> str:
         path_to_checkpoint = os.path.join(path_to_checkpoints_dir, f'model-{step}.pth')
@@ -108,7 +119,9 @@ class Model(nn.Module):
                 hidden = F.adaptive_max_pool2d(input=hidden, output_size=1)
                 hidden = hidden.view(hidden.shape[0], -1)
 
+                #print(hidden.shape) #(103, 2048)
                 proposal_classes = self._proposal_class(hidden)
+                #print(proposal_classes.shape) #(103, 92)
                 proposal_transformers = self._proposal_transformer(hidden)
 
                 proposal_classes = proposal_classes.view(batch_size, -1, proposal_classes.shape[-1])

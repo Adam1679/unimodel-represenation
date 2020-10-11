@@ -67,6 +67,7 @@ class QuestionAnswerPair(object):
         self.answer2id = {}
         self.id2answer = {}
         self.questionid2answers = defaultdict(list)
+        self.imageid2questionid = {}
         self.prepare()
         
         
@@ -87,12 +88,12 @@ class QuestionAnswerPair(object):
         one image -> one question (with unique id)
         (one image, one question) -> 10 anaswers?
         """
-        # imageid2questionid = {}
+        
         for part in self.question_meta:
             meta_obj = MetaQuestion(**part)
             self.question2id[meta_obj.question] = meta_obj.question_id
             self.id2question[meta_obj.question_id] = meta_obj.question
-            # imageid2questionid[meta_obj.image_id] = meta_obj.question_id
+            self.imageid2questionid[meta_obj.image_id] = meta_obj.question_id
             self.id2questionmeta[meta_obj.question_id] = meta_obj
             
         self.question_type = self.answer_meta['question_types']
@@ -116,6 +117,10 @@ class QuestionAnswerPair(object):
     def iter_question_type_pairs(self):
         for question, question_id in self.question2id.items():
             yield question, self.questionid2type[question_id]
+        
+    def iter_image_question_type_pairs(self):
+        for image_id, question_id in self.imageid2questionid.items():
+            yield image_id, self.questionid2type[question_id]
             
 if __name__ == "__main__":
     """ Summarize the Data Set """
@@ -124,13 +129,26 @@ if __name__ == "__main__":
     #answer_path = "D:/mscoco_train2014_annotations.json/mscoco_train2014_annotations.json"
     answer_path = "../data/mscoco_train2014_annotations.json"
     obj = QuestionAnswerPair(question_path, answer_path)
-    all_questions = set()
-    for question, type_name in obj.iter_question_type_pairs():
-        print(f"{question}: {type_name}")
-        all_questions.add(question)
+    #all_questions = set()
+    #for question, type_name in obj.iter_question_type_pairs():
+    #    print(f"{question}: {type_name}")
+    #    all_questions.add(question)
+
+    
+    #imageid2questiontype_dict = {}
+    #for image_id, question_type in obj.iter_image_question_type_pairs(): #8998
+    #    print(f"{image_id}: {question_type}")
+    #    imageid2questiontype_dict[image_id] = question_type
+    
+    #print(imageid2questiontype_dict)
+    with open("imageid2questiontype_dict.txt", "w") as f:
+        for image_id, question_type in obj.iter_image_question_type_pairs(): #8998
+            f.write(str(image_id) + " " + question_type + "\n")
+            
+    #print(i)
     # Glove hit/miss in questions: 73192/150
     # Glove hit/miss in answers: 35234/1021
-    print(f"#question in train/all-set {len(all_questions)}/14055\n #unique question: 12591 \n #unique_words: 7178")
+    #print(f"#question in train/all-set {len(all_questions)}/14055\n #unique question: 12591 \n #unique_words: 7178")
             
             
         
