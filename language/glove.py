@@ -119,8 +119,10 @@ class QuestionAnswerPair(object):
             
 if __name__ == "__main__":
     """ Summarize the Data Set """
-    question_path = "D:/OpenEnded_mscoco_train2014_questions.json/OpenEnded_mscoco_train2014_questions.json"
-    answer_path = "D:/mscoco_train2014_annotations.json/mscoco_train2014_annotations.json"
+    #question_path = "D:/OpenEnded_mscoco_train2014_questions.json/OpenEnded_mscoco_train2014_questions.json"
+    question_path = "../data/OpenEnded_mscoco_train2014_questions.json"
+    #answer_path = "D:/mscoco_train2014_annotations.json/mscoco_train2014_annotations.json"
+    answer_path = "../data/mscoco_train2014_annotations.json"
     obj = QuestionAnswerPair(question_path, answer_path)
     all_questions = set()
     for question, type_name in obj.iter_question_type_pairs():

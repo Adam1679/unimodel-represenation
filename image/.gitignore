@@ -1,1 +1,3 @@
-fasterrcnn_12211511_0.701052458187_torchvision_pretrain.pth
+model-coco2017.pth
+okvqa-data
+coco2017-data
