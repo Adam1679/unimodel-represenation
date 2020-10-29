@@ -6,7 +6,7 @@ glove.6B.50d.txt
 .idea
 # C extensions
 *.so
-
+.DS_Store
 # Distribution / packaging
 .Python
 build/

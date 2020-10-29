@@ -11,9 +11,9 @@ from tqdm import tqdm
 
 def cosine_similarity(x_vec, y_vev):
     """
-    :param x_vec: (dim)
-    :param y_vev: (n, dim)
-    :return:
+    :param x_vec: (D)
+    :param y_vev: (N, D)
+    :return: (N) vector
     """
     y_norm = np.linalg.norm(y_vev, ord=2, axis=1, keepdims=True)
     x_norm = np.linalg.norm(x_vec, ord=2, axis=0, keepdims=True)
@@ -44,7 +44,7 @@ def get_mrr(x_vec, y_vec, y_labels):
     return mrr, top1, top10, top50
 
 
-def get_data(obj, glove_obj):
+def get_data(obj, glove_obj, keep_pos=None):
     questions = []
     answer2id = {}
     id2answer = {}
@@ -65,11 +65,13 @@ def get_data(obj, glove_obj):
         y_labels.append(labels)
         questions.append(question)
 
-    return all_embeddings(questions, glove_obj), all_embeddings(all_answers, glove_obj), y_labels
+    return all_embeddings(questions, glove_obj, keep_pos), all_embeddings(all_answers, glove_obj), y_labels
+
 
 def get_avg_similarity(x_vec, y_vec, y_labels):
     # x_vec: (n, dim)
     # y_vec: (n, dim)
+    # reuturn : scalar
     all_sims = []
     for i, labels in enumerate(y_labels):
         sims = cosine_similarity(x_vec[i, :], y_vec[labels]).flatten()
@@ -83,9 +85,24 @@ if __name__ == "__main__":
     question_path = "./data/OpenEnded_mscoco_train2014_questions.json"
     obj = QuestionAnswerPair(answer_path=answer_path, question_path=question_path)
     glove_obj = Glove(glove_path)
-    question_emb, answer_emb, y_labels = get_data(obj, glove_obj)
+    # keep_pos = ['NNS', 'NN', 'NNP', 'NNPS', "JJ", 'JJR', 'PRP', 'PRP$', 'RB', 'RBR', 'RBS', 'RP', 'SYM', 'VB', 'VBD',
+    #             'VBG', 'VBN', 'VBP', 'VBZ']
+    keep_pos = None
+    question_emb, answer_emb, y_labels = get_data(obj, glove_obj, keep_pos)
+    # question_emb: (N, D)
+    # answer_emb: (M, D)
+    # y_labels: length(y_labels) = N. [[0,1,3], [1,2], []]
     sims = get_avg_similarity(question_emb, answer_emb, y_labels)
     mrr, top1, top10, top50 = get_mrr(question_emb, answer_emb, y_labels)
     print(f"MRR {mrr}, Hit@1 {top1:.4%}, Hit@10 {top10:.4%}, Hit@50 {top50:.4%},")
     print(f"Avg CosineSimilarity: {sims:.4f}")
+    """
+    With NE filter
+    MRR 0.000539533095451089, Hit@1 0.0075%, Hit@10 0.0413%, Hit@50 0.1501%,
+    Avg CosineSimilarity: 0.4740
+    
+    Without NE filter: 
+    MRR 0.0005426686912533377, Hit@1 0.0038%, Hit@10 0.0338%, Hit@50 0.2176%,
+    Avg CosineSimilarity: 0.4479
+    """
 

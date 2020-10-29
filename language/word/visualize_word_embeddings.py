@@ -45,12 +45,13 @@ def get_sent_embedding(sentence, glove, keep_pos=None):
             cnt += 1
         else:
             miss += 1
-    if cnt == 0:
-        print('EMPTY')
+
     return sent_emb / cnt if cnt > 0 else sent_emb
 
 
 def all_embeddings(sentences, glove, keep_pos=None):
+    # sentences: N strings
+    # return: array (N x D)
     x = np.zeros((len(sentences), glove.dim))
     for i, sent in enumerate(sentences):
         x[i, :] = get_sent_embedding(sent, glove, keep_pos)
@@ -66,16 +67,22 @@ def tsne_visualize(X, types, type2name, name):
     """
     # types = np.array(types)
     X_embedded = TSNE (n_components=2).fit_transform (X)
-    f, axes = plt.subplots(1,1,figsize=(10, 10))
+    f, axes = plt.subplots(1, 2,figsize=(30, 15))
     types = np.array(types)
+    type1_idx = types < 5
+    type2_idx = types >= 5
+    X1 = X_embedded[type1_idx, :]
+    X2 = X_embedded[type2_idx, :]
 
     def plot(ax, data, **kwargs):
         return ax.scatter(data[:, 0], data[:, 1], **kwargs)
 
-    color = [cmap(color_map[i]) for i in types]
-    plot(axes, X_embedded, c=color, marker='^')
+    plot(axes[0], X1, c=[cmap(color_map[i]) for i in types[type1_idx]], marker='^')
+    plot(axes[1], X2, c=[cmap(color_map[i]) for i in types[type2_idx]], marker='^')
     type_ids = np.unique (types)
-    legends = []
+    legends1 = []
+    legends2 = []
+
     for type_id in type_ids :
         type_name = type2name[type_id]
         line = Line2D ([0], [0], marker='^',
@@ -83,9 +90,12 @@ def tsne_visualize(X, types, type2name, name):
                        label=type_name,
                        markerfacecolor=cmap(color_map[type_id]),
                        markersize=10)
-        legends.append(line)
-    axes.legend(handles=legends, title_fontsize='small', loc='upper left')
-    axes.set_title(f'T-SNE viualization of {name}')
+        if type_id < 5:
+            legends1.append(line)
+        else:
+            legends2.append(line)
+    axes[0].legend(handles=legends1, title_fontsize='small', loc='upper left')
+    axes[1].legend(handles=legends2, title_fontsize='small', loc='upper left')
     f.savefig(f"./language.plot.sentence.{name}.png", dpi=180)
 
 def main():
@@ -115,6 +125,7 @@ def main():
     miss = 0
     tsne_visualize(all_embeddings(all_answers, glove_obj), anwser_types, id2type, "Answers")
     print (f"Glove hit/miss in answers: {hit}/{miss}")
+
 
 def main_with_name_entity_filter():
     keep_pos = ['NNS', 'NN', 'NNP', 'NNPS', "JJ", 'JJR', 'PRP', 'PRP$', 'RB', 'RBR', 'RBS', 'RP', 'SYM', 'VB', 'VBD',
