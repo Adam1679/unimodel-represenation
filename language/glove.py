@@ -131,8 +131,22 @@ if __name__ == "__main__":
     # Glove hit/miss in questions: 73192/150
     # Glove hit/miss in answers: 35234/1021
     print(f"#question in train/all-set {len(all_questions)}/14055\n #unique question: 12591 \n #unique_words: 7178")
-            
-            
+    
+    answer_num = []
+    for question, answers, type in obj.iter_question_answer_type_triplets():
+        answer_num.append(len(set(answers)))
+    max_n = max(answer_num)
+    min_n = min(answer_num)
+    print(f"Before stemming: Avg. # of Answers: {sum(answer_num)/len(answer_num)}, max={max_n}, min={min_n}")
+    from stemming.porter2 import stem 
+    answer_num = []
+    for question, answers, type in obj.iter_question_answer_type_triplets():
+        answers = [stem(w.lower()) for w in answers]
+        answer_num.append(len(set(answers)))
+    max_n = max(answer_num)
+    min_n = min(answer_num)
+    print(f"After stemming: Avg. # of Answers: {sum(answer_num)/len(answer_num)}, max={max_n}, min={min_n}")
+  
         
         
         
